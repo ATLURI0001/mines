@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STAKE MINES ALGORITHM</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #333;
+            color: #fff;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            gap: 10px;
+        }
+        .tile {
+            width: 60px;
+            height: 60px;
+            background-color: gray;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10%;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            position: relative;
+        }
+        .tile:hover {
+            transform: scale(1.1);
+        }
+        .tile.red {
+            background-color: red;
+        }
+        .tile.red::before {
+            content: "💣";
+            font-size: 1.5rem;
+        }
+        .tile.green {
+            background-color: green;
+        }
+        .tile.green::before {
+            content: "💎";
+            font-size: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: repeat(5, 50px);
+                gap: 8px;
+            }
+            .tile {
+                width: 50px;
+                height: 50px;
+            }
+            .tile.red::before, .tile.green::before {
+                font-size: 1.2rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .grid {
+                grid-template-columns: repeat(5, 40px);
+                gap: 6px;
+            }
+            .tile {
+                width: 40px;
+                height: 40px;
+            }
+            .tile.red::before, .tile.green::before {
+                font-size: 1rem;
+            }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            top: 10%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            color: #fff;
+        }
+        .modal-content {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .close {
+            background-color: #ff4d4d;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .close:hover {
+            background-color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>MINES</h1>
+    <div class="grid" id="grid"></div>
+
+    <div id="resultModal" class="modal">
+        <div class="modal-content" id="resultText"></div>
+        <button class="close" id="closeModal">Close</button>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const resultModal = document.getElementById('resultModal');
+        const resultText = document.getElementById('resultText');
+        const closeModal = document.getElementById('closeModal');
+        let winControl = 'random';
+
+        fetch('/get-win-control')
+            .then(response => response.json())
+            .then(data => {
+                winControl = data.control;
+            });
+
+        const tiles = Array.from({ length: 30 }, (_, index) => {
+            const div = document.createElement('div');
+            div.classList.add('tile');
+            div.dataset.index = index;
+            grid.appendChild(div);
+            return div;
+        });
+
+        const revealAllTiles = (index) => {
+            fetch('/reveal-tiles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ index }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                tiles.forEach((t, i) => {
+                    t.classList.remove('red', 'green');
+                    t.classList.add(data.tiles[i]);
+                });
+                if (data.tiles[index] === 'red') {
+                    showResult('You Lose!');
+                } else {
+                    showResult('You Win!');
+                }
+            });
+        };
+
+        const showResult = (message) => {
+            resultText.innerText = message;
+            resultModal.style.display = 'block';
+        };
+
+        tiles.forEach(tile => {
+            tile.addEventListener('click', () => {
+                const index = tile.dataset.index;
+                if (tile.classList.contains('red') || tile.classList.contains('green')) return;
+
+                revealAllTiles(index);
+            });
+        });
+
+        closeModal.addEventListener('click', () => {
+            resultModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === resultModal) {
+                resultModal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
